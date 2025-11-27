@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>일본 라멘 키오스크</title>
+    <!-- Google Fonts: 일본어 및 한국어 폰트 -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700&family=Noto+Sans+KR:wght@400;700&family=Sawarabi+Mincho&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --wood-dark: #5c4033;
+            --wood-light: #8b5a2b;
+            --jp-red: #b91c1c;
+            --jp-indigo: #1e3a8a;
+            --paper-bg: #fdfbf7;
+            --text-color: #2d2d2d;
+            --gold: #d4af37;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #222;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'Noto Sans KR', sans-serif;
+            overflow: hidden;
+            /* 전체 페이지 스크롤 방지 */
+        }
+
+        /* 키오스크 외관 프레임 (휴대폰 비율 적용) */
+        .kiosk-frame {
+            width: 100%;
+            max-width: 390px;
+            /* iPhone 12/13/14 Pro 너비 */
+            height: 844px;
+            /* iPhone 12/13/14 Pro 높이 */
+            max-height: 95vh;
+            /* 화면이 작을 경우를 대비 */
+            background: #1a1a1a;
+            border: 12px solid #000;
+            /* 베젤 느낌 */
+            border-radius: 40px;
+            /* 둥근 모서리 강화 */
+            position: relative;
+            overflow: hidden;
+            /* 내부 요소 클리핑 */
+            box-shadow: 0 0 50px rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 화면 영역 (스크롤 가능) */
+        .screen {
+            flex: 1;
+            background-color: var(--paper-bg);
+            background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23d1d5db' fill-opacity='0.2'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+            overflow-y: auto;
+            /* 내부 스크롤 활성화 */
+            position: relative;
+            display: flex;
+            flex-direction: column;
+
+            /* 스크롤바 숨기기 */
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
+        .screen::-webkit-scrollbar {
+            display: none;
+        }
+
+        /* 헤더 (노렌 스타일) */
+        .header {
+            background-color: var(--jp-indigo);
+            color: white;
+            padding: 20px 15px;
+            text-align: center;
+            position: relative;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            z-index: 10;
+            flex-shrink: 0;
+        }
+
+        .header::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 0;
+            width: 100%;
+            height: 10px;
+            background: repeat-x bottom left;
+            background-size: 20px 20px;
+            background-image: linear-gradient(45deg, var(--jp-indigo) 50%, transparent 50%),
+                linear-gradient(-45deg, var(--jp-indigo) 50%, transparent 50%);
+        }
+
+        .shop-title {
+            font-family: 'Sawarabi Mincho', serif;
+            font-size: 1.8rem;
+            font-weight: bold;
+            letter-spacing: 3px;
+            margin: 0;
+            text-shadow: 2px 2px 0px rgba(0, 0, 0, 0.5);
+        }
+
+        .shop-subtitle {
+            font-size: 0.8rem;
+            opacity: 0.9;
+            margin-top: 8px;
+            font-weight: 300;
+        }
+
+        /* 카테고리 탭 */
+        .tabs {
+            display: flex;
+            justify-content: space-around;
+            background: var(--wood-light);
+            padding: 10px 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            position: sticky;
+            top: 0;
+            z-index: 9;
+            flex-shrink: 0;
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            color: rgba(255, 255, 255, 0.8);
+            padding: 8px 0;
+            width: 30%;
+            border-radius: 8px;
+            font-family: 'Noto Serif JP', serif;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+            line-height: 1.2;
+        }
+
+        .tab-btn span {
+            display: block;
+            margin-top: 2px;
+        }
+
+        .tab-btn.active {
+            background: var(--jp-red);
+            border-color: var(--jp-red);
+            color: white;
+            font-weight: bold;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        /* 메뉴 그리드 */
+        .menu-container {
+            padding: 15px;
+            flex-grow: 1;
+        }
+
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .menu-item {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            transition: transform 0.1s;
+            cursor: pointer;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .menu-item:active {
+            transform: scale(0.98);
+        }
+
+        .item-img-placeholder {
+            width: 100%;
+            aspect-ratio: 4/3;
+            background-color: #f5f5f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 3.5rem;
+            position: relative;
+        }
+
+        .item-tag {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            background: var(--jp-red);
+            color: white;
+            font-size: 0.65rem;
+            font-weight: bold;
+            padding: 3px 8px;
+            border-radius: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .item-info {
+            padding: 12px 10px;
+            text-align: center;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .item-name-jp {
+            font-family: 'Noto Serif JP', serif;
+            font-size: 1rem;
+            font-weight: bold;
+            color: var(--text-color);
+            margin-bottom: 2px;
+            line-height: 1.3;
+        }
+
+        .item-name-ko {
+            font-size: 0.75rem;
+            color: #888;
+            margin-bottom: 8px;
+        }
+
+        .item-price {
+            color: var(--jp-red);
+            font-weight: 800;
+            font-size: 1.1rem;
+        }
+
+        /* 하단 카트 */
+        .bottom-cart {
+            position: relative;
+            background: white;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            z-index: 20;
+            border-top: 1px solid #eee;
+            flex-shrink: 0;
+        }
+
+        .cart-summary {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-bottom: 15px;
+        }
+
+        .total-label {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 3px;
+        }
+
+        .total-price {
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: var(--text-color);
+            line-height: 1;
+        }
+
+        .order-btn {
+            width: 100%;
+            background: var(--jp-red);
+            color: white;
+            border: none;
+            padding: 16px;
+            border-radius: 16px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(185, 28, 28, 0.3);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .order-btn:active {
+            transform: scale(0.98);
+        }
+
+        .order-btn:disabled {
+            background: #e5e7eb;
+            color: #9ca3af;
+            box-shadow: none;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* 모달 (커스텀 옵션) */
+        .modal-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(2px);
+            z-index: 50;
+            display: none;
+            justify-content: center;
+            align-items: flex-end;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+            animation: fadeIn 0.2s ease-out;
+        }
+
+        .modal-content {
+            background: white;
+            width: 100%;
+            border-top-left-radius: 24px;
+            border-top-right-radius: 24px;
+            padding: 25px 20px;
+            padding-bottom: 30px;
+            max-height: 85%;
+            overflow-y: auto;
+            animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .modal-title-jp {
+            font-family: 'Noto Serif JP', serif;
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: var(--text-color);
+            margin: 0;
+        }
+
+        .modal-title-ko {
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 4px;
+        }
+
+        .close-btn {
+            border: none;
+            background: #f1f3f5;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .option-group {
+            margin-bottom: 24px;
+        }
+
+        .option-title {
+            font-weight: bold;
+            font-size: 1rem;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            color: var(--text-color);
+        }
+
+        .option-title::before {
+            content: '';
+            display: inline-block;
+            width: 4px;
+            height: 16px;
+            background: var(--jp-red);
+            margin-right: 8px;
+            border-radius: 2px;
+        }
+
+        .option-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .opt-btn {
+            flex: 1;
+            padding: 12px 5px;
+            border: 1px solid #e5e7eb;
+            background: white;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            color: #4b5563;
+            transition: all 0.2s;
+        }
+
+        .opt-btn.selected {
+            background: var(--jp-indigo);
+            color: white;
+            border-color: var(--jp-indigo);
+            box-shadow: 0 4px 6px rgba(30, 58, 138, 0.2);
+            font-weight: bold;
+        }
+
+        /* 영수증 애니메이션 */
+        .receipt-area {
+            background: #222;
+            padding-top: 5px;
+            padding-bottom: 20px;
+            flex-shrink: 0;
+        }
+
+        .receipt-slot {
+            height: 12px;
+            background: #0a0a0a;
+            width: 180px;
+            margin: 0 auto;
+            border-radius: 6px;
+            position: relative;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
+            /* overflow: hidden; -> 영수증이 나올 때 잘리지 않도록 제거하거나 조정 */
+            z-index: 30;
+        }
+
+        .receipt-paper {
+            width: 160px;
+            background: #fff;
+            position: absolute;
+            left: 10px;
+            top: 5px;
+            /* 슬롯 바로 뒤 */
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            transform: translateY(-110%);
+            /* 위로 숨김 */
+            transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 25;
+            /* 슬롯(30)보다 뒤에 있어야 함 */
+            font-family: 'Courier New', monospace;
+            font-size: 0.7rem;
+            border-bottom: 5px jagged white;
+            /* 찢어진 종이 효과 흉내 (생략) */
+        }
+
+        .receipt-paper.print {
+            transform: translateY(10px);
+            /* 아래로 나옴 */
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(100%);
+            }
+
+            to {
+                transform: translateY(0);
+            }
+        }
+
+        /* 장바구니 배지 */
+        .cart-badge {
+            background: white;
+            color: var(--jp-red);
+            min-width: 24px;
+            height: 24px;
+            padding: 0 6px;
+            border-radius: 12px;
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 0.85rem;
+            font-weight: 800;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="kiosk-frame">
+        <div class="screen">
+            <!-- 헤더 -->
+            <header class="header">
+                <h1 class="shop-title">麺屋 ラーメン</h1>
+                <div class="shop-subtitle">정통 일본식 자가제면 라멘</div>
+            </header>
+
+            <!-- 탭 메뉴 -->
+            <nav class="tabs">
+                <button class="tab-btn active" onclick="filterMenu('ramen')">ラーメン<br><span
+                        style="font-size:0.7em">라멘</span></button>
+                <button class="tab-btn" onclick="filterMenu('side')">一品<br><span
+                        style="font-size:0.7em">사이드</span></button>
+                <button class="tab-btn" onclick="filterMenu('drink')">飲み物<br><span
+                        style="font-size:0.7em">음료</span></button>
+            </nav>
+
+            <!-- 메뉴 리스트 -->
+            <div class="menu-container">
+                <div class="menu-grid" id="menu-container">
+                    <!-- JS로 렌더링 됨 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 하단 고정 카트 및 결제 버튼 -->
+        <div class="bottom-cart">
+            <div class="cart-summary">
+                <div>
+                    <div class="total-label">총 결제금액</div>
+                    <div class="total-price"><span id="total-price">0</span>원</div>
+                </div>
+            </div>
+            <button class="order-btn" id="order-btn" onclick="processOrder()" disabled>
+                <span>注文する (주문하기)</span>
+                <span class="cart-badge" id="cart-count">0</span>
+            </button>
+        </div>
+
+        <!-- 영수증 출력 슬롯 효과 -->
+        <div class="receipt-area">
+            <div class="receipt-slot">
+                <!-- 슬롯 구멍 -->
+            </div>
+            <div class="receipt-paper" id="receipt">
+                <h3 style="margin:5px 0; font-size:1em;">영수증</h3>
+                <p style="margin:5px 0;">----------------</p>
+                <div id="receipt-items" style="text-align:left; margin-bottom:10px;"></div>
+                <p style="margin:5px 0;">----------------</p>
+                <h3 id="receipt-total" style="margin:10px 0;"></h3>
+                <p style="margin-top:10px; font-size:0.8em;">주문번호: <span id="order-num"
+                        style="font-size:1.2em; font-weight:bold;"></span></p>
+                <p style="margin-top:10px; color:#888;">감사합니다!<br>ありがとうございます</p>
+            </div>
+        </div>
+
+        <!-- 옵션 선택 모달 -->
+        <div class="modal-overlay" id="option-modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div>
+                        <h2 id="modal-item-name-jp" class="modal-title-jp"></h2>
+                        <div id="modal-item-name-ko" class="modal-title-ko"></div>
+                    </div>
+                    <button onclick="closeModal()" class="close-btn">&times;</button>
+                </div>
+
+                <!-- 라멘 옵션 (라멘일 때만 보임) -->
+                <div id="ramen-options">
+                    <div class="option-group">
+                        <span class="option-title">麺の硬さ (면 익힘)</span>
+                        <div class="option-buttons" id="opt-noodle">
+                            <button class="opt-btn" data-value="soft"
+                                onclick="selectOption('noodle', 'soft')">부드러움</button>
+                            <button class="opt-btn selected" data-value="normal"
+                                onclick="selectOption('noodle', 'normal')">보통</button>
+                            <button class="opt-btn" data-value="hard"
+                                onclick="selectOption('noodle', 'hard')">단단함</button>
+                        </div>
+                    </div>
+
+                    <div class="option-group">
+                        <span class="option-title">味の濃さ (국물 농도)</span>
+                        <div class="option-buttons" id="opt-soup">
+                            <button class="opt-btn" data-value="light"
+                                onclick="selectOption('soup', 'light')">연하게</button>
+                            <button class="opt-btn selected" data-value="normal"
+                                onclick="selectOption('soup', 'normal')">보통</button>
+                            <button class="opt-btn" data-value="strong"
+                                onclick="selectOption('soup', 'strong')">진하게</button>
+                        </div>
+                    </div>
+
+                    <div class="option-group">
+                        <span class="option-title">ニンニク (마늘)</span>
+                        <div class="option-buttons" id="opt-garlic">
+                            <button class="opt-btn" data-value="none"
+                                onclick="selectOption('garlic', 'none')">없음</button>
+                            <button class="opt-btn selected" data-value="little"
+                                onclick="selectOption('garlic', 'little')">조금</button>
+                            <button class="opt-btn" data-value="lot" onclick="selectOption('garlic', 'lot')">많이</button>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="order-btn" onclick="addToCart()">
+                    <span>장바구니 담기</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 메뉴 데이터
+        const menuData = [
+            { id: 1, category: 'ramen', nameJp: '豚骨ラーメン', nameKo: '돈코츠 라멘', price: 9000, img: '🍜', tag: 'BEST' },
+            { id: 2, category: 'ramen', nameJp: '醤油ラーメン', nameKo: '소유 라멘', price: 8500, img: '🍜', tag: '' },
+            { id: 3, category: 'ramen', nameJp: '味噌ラーメン', nameKo: '미소 라멘', price: 9500, img: '🍜', tag: 'POPULAR' },
+            { id: 4, category: 'ramen', nameJp: '激辛ラーメン', nameKo: '카라구치(매운) 라멘', price: 10000, img: '🌶️', tag: 'SPICY' },
+            { id: 5, category: 'side', nameJp: '焼き餃子', nameKo: '야끼 교자 (5p)', price: 4000, img: '🥟', tag: '' },
+            { id: 6, category: 'side', nameJp: '唐揚げ', nameKo: '치킨 가라아게', price: 5000, img: '🍗', tag: '' },
+            { id: 7, category: 'side', nameJp: 'チャーシュー丼', nameKo: '미니 차슈덮밥', price: 3500, img: '🍚', tag: '' },
+            { id: 8, category: 'drink', nameJp: '生ビール', nameKo: '생맥주 300ml', price: 4000, img: '🍺', tag: 'COOL' },
+            { id: 9, category: 'drink', nameJp: 'コーラ', nameKo: '콜라', price: 2000, img: '🥤', tag: '' },
+            { id: 10, category: 'drink', nameJp: 'ラムネ', nameKo: '라무네 (일본 사이다)', price: 3000, img: '🍾', tag: '' },
+        ];
+
+        let cart = [];
+        let currentCategory = 'ramen';
+        let selectedItem = null;
+        let currentOptions = { noodle: 'normal', soup: 'normal', garlic: 'little' };
+
+        // 초기 렌더링
+        window.onload = () => {
+            renderMenu('ramen');
+        };
+
+        // 메뉴 필터링 및 렌더링
+        function filterMenu(category) {
+            currentCategory = category;
+
+            // 탭 활성화 스타일 변경
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+
+            renderMenu(category);
+        }
+
+        function renderMenu(category) {
+            const container = document.getElementById('menu-container');
+            container.innerHTML = '';
+
+            const filtered = menuData.filter(item => item.category === category);
+
+            filtered.forEach(item => {
+                const el = document.createElement('div');
+                el.className = 'menu-item';
+                el.onclick = () => openModal(item);
+                el.innerHTML = `
+                    <div class="item-img-placeholder">
+                        ${item.img}
+                        ${item.tag ? `<span class="item-tag">${item.tag}</span>` : ''}
+                    </div>
+                    <div class="item-info">
+                        <div>
+                            <div class="item-name-jp">${item.nameJp}</div>
+                            <div class="item-name-ko">${item.nameKo}</div>
+                        </div>
+                        <div class="item-price">${item.price.toLocaleString()}원</div>
+                    </div>
+                `;
+                container.appendChild(el);
+            });
+        }
+
+        // 모달 열기
+        function openModal(item) {
+            selectedItem = item;
+
+            // 옵션 초기화 (기본값)
+            currentOptions = { noodle: 'normal', soup: 'normal', garlic: 'little' };
+            resetOptionButtons();
+
+            document.getElementById('modal-item-name-jp').innerText = item.nameJp;
+            document.getElementById('modal-item-name-ko').innerText = item.nameKo;
+            document.getElementById('option-modal').classList.add('active');
+
+            // 라멘이 아니면 옵션 숨기기
+            const optionsDiv = document.getElementById('ramen-options');
+            if (item.category === 'ramen') {
+                optionsDiv.style.display = 'block';
+            } else {
+                optionsDiv.style.display = 'none';
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('option-modal').classList.remove('active');
+            selectedItem = null;
+        }
+
+        // 옵션 선택 로직
+        function selectOption(type, value) {
+            currentOptions[type] = value;
+            resetOptionButtons(); // 버튼 상태 업데이트
+        }
+
+        function resetOptionButtons() {
+            const types = ['noodle', 'soup', 'garlic'];
+            types.forEach(type => {
+                const group = document.getElementById(`opt-${type}`);
+                if (group) {
+                    const btns = group.querySelectorAll('.opt-btn');
+                    btns.forEach(btn => {
+                        if (btn.dataset.value === currentOptions[type]) {
+                            btn.classList.add('selected');
+                        } else {
+                            btn.classList.remove('selected');
+                        }
+                    });
+                }
+            });
+        }
+
+        // 장바구니 담기
+        function addToCart() {
+            if (!selectedItem) return;
+
+            const orderItem = {
+                ...selectedItem,
+                options: selectedItem.category === 'ramen' ? { ...currentOptions } : null
+            };
+
+            cart.push(orderItem);
+            updateCartUI();
+            closeModal();
+
+            // 간단한 진동 효과 (모바일 지원시)
+            if (navigator.vibrate) navigator.vibrate(50);
+        }
+
+        function updateCartUI() {
+            const totalPrice = cart.reduce((sum, item) => sum + item.price, 0);
+            document.getElementById('total-price').innerText = totalPrice.toLocaleString();
+            document.getElementById('cart-count').innerText = cart.length;
+
+            const btn = document.getElementById('order-btn');
+            if (cart.length > 0) btn.disabled = false;
+            else btn.disabled = true;
+        }
+
+        // 주문 처리
+        function processOrder() {
+            if (cart.length === 0) return;
+
+            // 영수증 내용 생성
+            const receiptItems = document.getElementById('receipt-items');
+            receiptItems.innerHTML = '';
+            cart.forEach(item => {
+                let optText = '';
+                if (item.options) {
+                    // 옵션 텍스트 변환
+                    const map = {
+                        soft: '부드러움', normal: '보통', hard: '단단함',
+                        light: '연하게', strong: '진하게',
+                        none: '없음', little: '조금', lot: '많이'
+                    };
+                    optText = `<br><span style="font-size:0.8em; color:#666; margin-left:5px;">└ ${map[item.options.noodle]} / ${map[item.options.soup]} / 마늘 ${map[item.options.garlic]}</span>`;
+                }
+                receiptItems.innerHTML += `<div style="display:flex; justify-content:space-between; margin-bottom:8px; border-bottom:1px dashed #eee; padding-bottom:5px;">
+                    <div style="text-align:left;">${item.nameKo}${optText}</div>
+                    <div style="font-weight:bold;">${item.price.toLocaleString()}</div>
+                </div>`;
+            });
+
+            const total = cart.reduce((sum, item) => sum + item.price, 0);
+            document.getElementById('receipt-total').innerText = `합계: ${total.toLocaleString()}원`;
+            document.getElementById('order-num').innerText = Math.floor(Math.random() * 900) + 100;
+
+            // 영수증 출력 애니메이션
+            const receipt = document.getElementById('receipt');
+            receipt.classList.add('print');
+
+            // UI 리셋
+            setTimeout(() => {
+                alert("주문이 완료되었습니다!\n注文が完了しました。");
+                receipt.classList.remove('print');
+                cart = [];
+                updateCartUI();
+            }, 3500);
+        }
+    </script>
+</body>
+
+</html>
